@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+
+<title>Smart PDF Chat System</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+</head>
+
+
+<body>
+
+
+<!-- HEADER -->
+
+<div class="header">
+
+<h1>Smart PDF Chat System</h1>
+
+<p>Upload PDF, Ask Questions and Get AI Answers</p>
+
+</div>
+
+
+
+<div class="container">
+
+
+<!-- LEFT SIDE PDF -->
+
+
+<div class="card">
+
+
+<div class="title">
+ PDF Preview
+</div>
+
+
+<form id="upload-form">
+
+<div class="upload-box">
+
+<input 
+type="file" 
+name="pdf_file" 
+accept="application/pdf"
+required>
+
+</div>
+
+
+<button>
+Upload & Process
+</button>
+
+
+</form>
+
+
+<div id="status"></div>
+
+
+<iframe 
+id="viewer"
+style="display:none;">
+</iframe>
+
+
+</div>
+
+
+
+
+
+
+<!-- RIGHT SIDE CHAT -->
+
+<div class="card">
+
+
+<div class="title">
+💬 Chat With PDF
+</div>
+
+
+
+<!-- MODE -->
+
+<div class="mode-box">
+
+<label>
+
+<input 
+type="radio"
+name="mode"
+value="offline"
+checked>
+
+Offline
+
+</label>
+
+
+&nbsp;&nbsp;
+
+
+<label>
+
+<input 
+type="radio"
+name="mode"
+value="online">
+
+Online AI
+
+</label>
+
+
+</div>
+
+
+
+
+<!-- BUTTONS -->
+
+<div class="top-buttons">
+
+
+<button 
+class="small-btn"
+onclick="toggleHistory()"
+type="button">
+
+📜 History
+
+</button>
+
+
+
+<button
+class="small-btn"
+onclick="clearChat()"
+type="button">
+
+🗑 Clear
+
+</button>
+
+
+</div>
+
+
+
+
+
+<!-- HISTORY PANEL -->
+
+
+<div id="historyPanel"></div>
+
+
+
+
+
+<!-- CHAT -->
+
+
+<div id="chat" class="chat">
+
+
+<div class="message ai">
+
+👋 Upload PDF to start chatting
+
+</div>
+
+
+</div>
+
+
+
+
+<form 
+id="chat-form"
+class="input-area">
+
+
+<input
+id="question"
+placeholder="Ask your PDF..."
+required>
+
+
+<button>
+Send
+</button>
+
+
+</form>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<script>
+
+
+const uploadForm =
+document.getElementById("upload-form");
+
+
+const chatForm =
+document.getElementById("chat-form");
+
+
+const chat =
+document.getElementById("chat");
+
+
+const viewer =
+document.getElementById("viewer");
+
+
+const status =
+document.getElementById("status");
+
+
+
+
+
+// FORMAT AI TEXT
+
+function formatAI(text){
+
+return text
+.replace(/\*\*/g,"")
+.replace(/#/g,"")
+.split("\n")
+.map(x=>x.trim())
+.filter(x=>x)
+.map(x=>`<p>${x}</p>`)
+.join("");
+
+}
+
+
+
+
+// ---------------- UPLOAD ----------------
+
+
+uploadForm.addEventListener(
+"submit",
+async(e)=>{
+
+
+e.preventDefault();
+
+
+status.innerHTML=
+"<div class='status'>⏳ Uploading...</div>";
+
+
+try{
+
+
+let res =
+await fetch(
+"/upload",
+{
+
+method:"POST",
+
+body:new FormData(uploadForm)
+
+});
+
+
+let data =
+await res.json();
+
+
+
+viewer.src =
+"/uploads/"+data.filename;
+
+
+viewer.style.display="block";
+
+
+status.innerHTML=
+"<div class='status success'>✅ Upload successful</div>";
+
+
+
+}
+
+catch{
+
+
+status.innerHTML=
+"<div class='status error'>❌ Upload failed</div>";
+
+}
+
+
+});
+
+
+
+
+
+
+
+
+// ---------------- CHAT ----------------
+
+
+chatForm.addEventListener(
+"submit",
+async(e)=>{
+
+
+e.preventDefault();
+
+
+
+let input =
+document.getElementById("question");
+
+
+
+let msg =
+input.value.trim();
+
+
+
+let mode =
+document.querySelector(
+'input[name="mode"]:checked'
+).value;
+
+
+
+if(!msg)return;
+
+
+
+chat.innerHTML +=
+
+`
+<div class="message user">
+
+${msg}
+
+</div>
+`;
+
+
+
+input.value="";
+
+
+
+let loading =
+document.createElement("div");
+
+
+loading.className="message ai";
+
+
+loading.innerHTML="⏳ Thinking...";
+
+
+chat.appendChild(loading);
+
+
+
+
+try{
+
+
+let url =
+mode==="offline"
+?"/chat"
+:"/ai";
+
+
+
+let body =
+mode==="offline"
+?
+{message:msg}
+:
+{text:msg};
+
+
+
+
+let res =
+await fetch(
+url,
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:
+JSON.stringify(body)
+
+});
+
+
+
+let data =
+await res.json();
+
+
+
+loading.remove();
+
+
+
+let answer =
+data.answer ||
+data.extra ||
+data.error;
+
+
+
+chat.innerHTML +=
+
+`
+<div class="message ai">
+
+<div class="answer-box">
+
+${formatAI(answer)}
+
+</div>
+
+</div>
+
+`;
+
+
+
+saveHistory(
+msg,
+answer
+);
+
+
+
+}
+
+
+catch{
+
+
+loading.remove();
+
+
+chat.innerHTML +=
+
+`
+<div class="message ai">
+
+❌ Error occurred
+
+</div>
+
+`;
+
+}
+
+
+
+
+chat.scrollTop =
+chat.scrollHeight;
+
+
+
+});
+
+
+
+
+
+
+
+
+
+// ---------------- HISTORY ----------------
+
+
+function saveHistory(q,a){
+
+
+let history =
+JSON.parse(
+localStorage.getItem("history")
+)
+|| [];
+
+
+
+// remove duplicate
+
+history =
+history.filter(
+x=>x.question!==q
+);
+
+
+
+// newest first
+
+history.unshift({
+
+question:q,
+
+answer:a
+
+});
+
+
+
+
+// only 10
+
+history =
+history.slice(0,10);
+
+
+
+
+localStorage.setItem(
+
+"history",
+
+JSON.stringify(history)
+
+);
+
+
+}
+
+
+
+
+
+function toggleHistory(){
+
+
+let box =
+document.getElementById("historyPanel");
+
+
+
+if(
+box.style.display==="block"
+){
+
+
+box.style.display="none";
+
+
+return;
+
+}
+
+
+
+box.style.display="block";
+
+
+
+loadHistory();
+
+
+}
+
+
+
+
+
+function loadHistory(){
+
+
+let box =
+document.getElementById("historyPanel");
+
+
+
+let history =
+JSON.parse(
+localStorage.getItem("history")
+)
+|| [];
+
+
+
+
+box.innerHTML=`
+
+<div style="
+display:flex;
+justify-content:space-between">
+
+<h3>History</h3>
+
+
+<button 
+onclick="toggleHistory()"
+style="width:40px">
+
+X
+
+</button>
+
+
+</div>
+
+`;
+
+
+
+
+
+history.forEach(h=>{
+
+
+box.innerHTML +=
+
+`
+
+<div class="answer-box">
+
+<b>Q:</b> ${h.question}
+
+</div>
+
+`;
+
+
+
+});
+
+
+}
+
+
+
+
+
+
+
+// ---------------- CLEAR ----------------
+
+
+
+function clearChat(){
+
+
+
+chat.innerHTML=
+
+`
+
+<div class="message ai">
+
+👋 Chat cleared
+
+</div>
+
+`;
+
+
+
+}
+
+
+
+</script>
+
+<footer class="footer">
+    <h6>Developed by</h6> 
+    <h3>Harsha Jadenavar</h3>
+</footer>
+
+</body>
+
+</html>
