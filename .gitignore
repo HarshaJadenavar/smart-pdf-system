@@ -4,3 +4,9 @@ uploads/
 __pycache__/
 *.pyc
 .env
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store

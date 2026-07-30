@@ -6,7 +6,7 @@
 
 <title>Smart PDF Chat System</title>
 
-<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<link rel="stylesheet" href="/static/styles.css">
 
 </head>
 
@@ -63,8 +63,21 @@ Upload & Process
 
 <div id="status"></div>
 
+<div id="previewPlaceholder" class="preview-placeholder">
 
-<iframe 
+    <div class="preview-icon">📄</div>
+
+    <h3>No PDF Uploaded</h3>
+
+    <p>
+        Select a PDF file and click
+        <b>Upload & Process</b>
+        to preview your document here.
+    </p>
+
+</div>
+
+<iframe
 id="viewer"
 style="display:none;">
 </iframe>
@@ -88,73 +101,58 @@ style="display:none;">
 
 
 
-<!-- MODE -->
+<!-- CONTROLS ROW -->
 
-<div class="mode-box">
+<div class="controls-row">
 
-<label>
+    <!-- LEFT -->
+    <div class="mode-box">
 
-<input 
-type="radio"
-name="mode"
-value="offline"
-checked>
+        <label>
+            <input
+                type="radio"
+                name="mode"
+                value="offline"
+                checked>
+            Offline
+        </label>
 
-Offline
+        &nbsp;&nbsp;
 
-</label>
+        <label>
+            <input
+                type="radio"
+                name="mode"
+                value="online">
+            Online/AI
+        </label>
 
+    </div>
 
-&nbsp;&nbsp;
+    <!-- RIGHT -->
+    <div class="top-buttons">
 
+        <button
+            class="small-btn"
+            type="button"
+            onclick="toggleHistory()">
 
-<label>
+            📜 History
 
-<input 
-type="radio"
-name="mode"
-value="online">
+        </button>
 
-Online AI
+        <button
+            class="small-btn"
+            type="button"
+            onclick="clearChat()">
 
-</label>
+            🗑 Clear
 
+        </button>
 
-</div>
-
-
-
-
-<!-- BUTTONS -->
-
-<div class="top-buttons">
-
-
-<button 
-class="small-btn"
-onclick="toggleHistory()"
-type="button">
-
-📜 History
-
-</button>
-
-
-
-<button
-class="small-btn"
-onclick="clearChat()"
-type="button">
-
-🗑 Clear
-
-</button>
-
+    </div>
 
 </div>
-
-
-
 
 
 <!-- HISTORY PANEL -->
@@ -301,6 +299,7 @@ viewer.src =
 
 viewer.style.display="block";
 
+document.getElementById("previewPlaceholder").style.display="none";
 
 status.innerHTML=
 "<div class='status success'>✅ Upload successful</div>";

@@ -3,22 +3,26 @@ import re
 import secrets
 import shutil
 import requests
+from dotenv import load_dotenv
 
+load_dotenv()
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from werkzeug.utils import secure_filename
 
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "uploads"
-VECTOR_DB = "chroma_db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+VECTOR_DB = os.path.join(BASE_DIR, "chroma_db")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(VECTOR_DB, exist_ok=True)
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
@@ -30,7 +34,7 @@ embeddings = HuggingFaceEmbeddings(
 
 
 # OpenRouter key
-OPENROUTER_API_KEY = OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 
 @app.route("/")
@@ -66,10 +70,9 @@ def upload():
 
 
     if os.path.exists(VECTOR_DB):
-        shutil.rmtree(
-            VECTOR_DB,
-            ignore_errors=True
-        )
+        shutil.rmtree(VECTOR_DB, ignore_errors=True)
+
+    os.makedirs(VECTOR_DB, exist_ok=True)
 
 
     docs = PyPDFLoader(path).load()
